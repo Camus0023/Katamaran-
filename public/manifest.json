@@ -1,0 +1,24 @@
+{
+  "name": "Katamaran - Juego Accesible",
+  "short_name": "Katamaran",
+  "description": "Juego inclusivo diseñado para personas con discapacidad visual",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f5dc",
+  "theme_color": "#2c5f5f",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.jpg",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["games", "accessibility"],
+  "lang": "es"
+}
