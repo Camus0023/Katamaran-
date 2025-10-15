@@ -11,7 +11,7 @@ interface RhythmGameProps {
 }
 
 type Direction = "left" | "center" | "right"
-type GameState = "intro" | "ready" | "playing" | "paused" | "gameOver"
+type GameState = "intro" | "ready" | "playing" | "paused" | "gameOver" | "resuming"
 
 interface Beat {
   direction: Direction
@@ -27,6 +27,7 @@ export default function RhythmGame({ onBack, audioManager }: RhythmGameProps) {
   const [beats, setBeats] = useState<Beat[]>([])
   const [currentBeatIndex, setCurrentBeatIndex] = useState(0)
   const [combo, setCombo] = useState(0)
+  const [currentDirection, setCurrentDirection] = useState<Direction | null>(null)
 
   // Generar secuencia de beats
   const generateBeats = useCallback(() => {
@@ -53,6 +54,13 @@ export default function RhythmGame({ onBack, audioManager }: RhythmGameProps) {
       audioManager.speak(introText)
     }
   }, [gameState, audioManager])
+
+  const playNextSound = useCallback(() => {
+    const directions: Direction[] = ["left", "center", "right"]
+    const randomDirection = directions[Math.floor(Math.random() * directions.length)]
+    setCurrentDirection(randomDirection)
+    audioManager.playDirectionalSound(randomDirection)
+  }, [audioManager])
 
   // Manejar teclas
   useEffect(() => {
@@ -110,7 +118,7 @@ export default function RhythmGame({ onBack, audioManager }: RhythmGameProps) {
 
     window.addEventListener("keydown", handleKeyPress)
     return () => window.removeEventListener("keydown", handleKeyPress)
-  }, [gameState, currentBeatIndex, beats, audioManager, onBack])
+  }, [gameState, currentDirection, audioManager, onBack])
 
   const startGame = () => {
     audioManager.playSound("start")
@@ -120,13 +128,8 @@ export default function RhythmGame({ onBack, audioManager }: RhythmGameProps) {
       setGameState("playing")
       setScore(0)
       setTimeLeft(60)
-      setCurrentBeatIndex(0)
       setCombo(0)
-      generateBeats()
-
-      const gameInstructions =
-        "Recuerda que debes presionar la flecha izquierda si escuchas un sonido en el auricular izquierdo, debe presionar la flecha de arriba si escucha un sonido en ambos auriculares, y debe de presionar la flecha de la derecha si escucha un sonido en el auricular derecho. Si desea pausar pulse la tecla P o Barra espaciadora. ¡El juego comenzará en 3, 2, 1!"
-      audioManager.speak(gameInstructions)
+      playNextSound()
     }, 3000)
   }
 
@@ -139,25 +142,30 @@ export default function RhythmGame({ onBack, audioManager }: RhythmGameProps) {
   }
 
   const resumeGame = () => {
-    setGameState("playing")
+    setGameState("resuming")
     audioManager.playSound("resume")
     audioManager.speak("Reanudando juego en 3, 2, 1")
+
+    // Esperar 3 segundos antes de reanudar el juego
+    setTimeout(() => {
+      setGameState("playing")
+      playNextSound()
+    }, 3000)
   }
 
   const handleBeatInput = (direction: Direction) => {
-    if (currentBeatIndex >= beats.length) return
+    if (!currentDirection) return
 
-    const currentBeat = beats[currentBeatIndex]
-
-    if (currentBeat.direction === direction) {
+    if (currentDirection === direction) {
       // Acierto
+      const newCombo = combo + 1
       const points = 10 + combo * 2
       setScore((prev) => prev + points)
-      setCombo((prev) => prev + 1)
+      setCombo(newCombo)
       audioManager.playSound("correct")
 
-      if (combo > 0 && combo % 5 === 0) {
-        audioManager.speak(`¡Combo de ${combo}!`)
+      if (newCombo > 0 && newCombo % 5 === 0) {
+        audioManager.speak(`¡Combo de ${newCombo}!`)
       }
     } else {
       // Error
@@ -165,10 +173,14 @@ export default function RhythmGame({ onBack, audioManager }: RhythmGameProps) {
       audioManager.playSound("wrong")
     }
 
-    setCurrentBeatIndex((prev) => prev + 1)
+    setCurrentDirection(null)
+    setTimeout(() => {
+      if (gameState === "playing") {
+        playNextSound()
+      }
+    }, 500)
   }
 
-  // Timer del juego
   useEffect(() => {
     if (gameState === "playing" && timeLeft > 0) {
       const timer = setTimeout(() => {
@@ -176,8 +188,12 @@ export default function RhythmGame({ onBack, audioManager }: RhythmGameProps) {
       }, 1000)
       return () => clearTimeout(timer)
     } else if (timeLeft === 0 && gameState === "playing") {
-      // Fin del juego
       setGameState("gameOver")
+    }
+  }, [gameState, timeLeft])
+
+  useEffect(() => {
+    if (gameState === "gameOver") {
       if (score > highScore) {
         setHighScore(score)
         audioManager.speak(
@@ -189,19 +205,7 @@ export default function RhythmGame({ onBack, audioManager }: RhythmGameProps) {
         )
       }
     }
-  }, [gameState, timeLeft, score, highScore, audioManager])
-
-  // Reproducir beats
-  useEffect(() => {
-    if (gameState === "playing" && currentBeatIndex < beats.length) {
-      const currentBeat = beats[currentBeatIndex]
-
-      // Reproducir sonido direccional
-      setTimeout(() => {
-        audioManager.playDirectionalSound(currentBeat.direction)
-      }, 500) // Dar tiempo al jugador para reaccionar
-    }
-  }, [currentBeatIndex, beats, gameState, audioManager])
+  }, [gameState, score, highScore, audioManager])
 
   const getDirectionIcon = (direction: Direction) => {
     switch (direction) {
@@ -291,7 +295,7 @@ export default function RhythmGame({ onBack, audioManager }: RhythmGameProps) {
           </div>
         )}
 
-        {(gameState === "playing" || gameState === "paused") && (
+        {(gameState === "playing" || gameState === "paused" || gameState === "resuming") && (
           <div className="w-full max-w-4xl">
             {/* Controles de juego */}
             <div className="flex justify-center items-center gap-8 mb-8">
@@ -299,15 +303,18 @@ export default function RhythmGame({ onBack, audioManager }: RhythmGameProps) {
                 className="w-20 h-20 rounded-full bg-amber-200 hover:bg-amber-300 border-2 border-amber-400 game-button"
                 onClick={() => handleBeatInput("left")}
                 aria-label="Flecha izquierda - Sonido del auricular izquierdo"
+                disabled={gameState !== "playing"}
               >
                 <ChevronLeft className="w-8 h-8 text-amber-700" />
               </Button>
 
               <div className="text-center">
-                {gameState === "paused" ? (
+                {gameState === "paused" || gameState === "resuming" ? (
                   <div className="bg-white px-8 py-4 rounded-lg border-2 border-gray-300">
                     <Pause className="w-8 h-8 mx-auto text-gray-600 mb-2" />
-                    <span className="text-xl font-bold text-gray-700">PAUSA</span>
+                    <span className="text-xl font-bold text-gray-700">
+                      {gameState === "resuming" ? "REANUDANDO..." : "PAUSA"}
+                    </span>
                   </div>
                 ) : (
                   <Button
@@ -324,6 +331,7 @@ export default function RhythmGame({ onBack, audioManager }: RhythmGameProps) {
                 className="w-20 h-20 rounded-full bg-amber-200 hover:bg-amber-300 border-2 border-amber-400 game-button"
                 onClick={() => handleBeatInput("right")}
                 aria-label="Flecha derecha - Sonido del auricular derecho"
+                disabled={gameState !== "playing"}
               >
                 <ChevronRight className="w-8 h-8 text-amber-700" />
               </Button>
@@ -338,6 +346,7 @@ export default function RhythmGame({ onBack, audioManager }: RhythmGameProps) {
                 pulse la tecla "P" o "Barra espaciadora".
                 {gameState === "paused" &&
                   " Para reanudar la partida presione la tecla P o Barra espaciadora. Si desea regresar al menú presione 0."}
+                {gameState === "resuming" && " El juego se reanudará en unos momentos..."}
               </p>
             </div>
           </div>
