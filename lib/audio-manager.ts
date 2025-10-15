@@ -2,12 +2,14 @@ export class AudioManager {
   private synth: SpeechSynthesis | null = null
   private audioContext: AudioContext | null = null
   private sounds: { [key: string]: AudioBuffer } = {}
+  private selectedVoice: SpeechSynthesisVoice | null = null
 
   constructor() {
     if (typeof window !== "undefined") {
       this.synth = window.speechSynthesis
       this.initAudioContext()
       this.preloadSounds()
+      this.initVoice()
     }
   }
 
@@ -172,15 +174,128 @@ export class AudioManager {
     return buffer
   }
 
-  speak(text: string, rate = 0.9, pitch = 1) {
+  private initVoice() {
+    if (!this.synth) return
+
+    // Esperar a que las voces estén disponibles
+    const setVoice = () => {
+      const voices = this.synth!.getVoices()
+
+      console.log(
+        "[v0] Voces disponibles:",
+        voices.map((v) => `${v.name} (${v.lang})`),
+      )
+
+      const spanishVoices = voices.filter((voice) => voice.lang.startsWith("es") || voice.lang.startsWith("es-"))
+
+      const femaleKeywords = [
+        "Female",
+        "Mujer",
+        "Femenina",
+        "Woman",
+        "Paulina",
+        "Monica",
+        "Lucia",
+        "Mónica",
+        "Lucía",
+        "female",
+        "Helena",
+        "Sabina",
+        "Paloma",
+        "Zira",
+        "Dalia",
+        "Francisca",
+      ]
+
+      const maleKeywords = [
+        "Male",
+        "Hombre",
+        "Masculino",
+        "Man",
+        "male",
+        "Raul",
+        "Jorge",
+        "Diego",
+        "Juan",
+        "Carlos",
+        "Pablo",
+        "Miguel",
+      ]
+
+      // Palabras clave para identificar voces de alta calidad
+      const qualityKeywords = ["Google", "Microsoft", "Premium", "Enhanced", "Neural", "Natural"]
+
+      const getVoiceScore = (voice: SpeechSynthesisVoice) => {
+        let score = 0
+
+        if (maleKeywords.some((keyword) => voice.name.toLowerCase().includes(keyword.toLowerCase()))) {
+          score -= 1000
+        }
+
+        // Puntos por ser femenina
+        if (femaleKeywords.some((keyword) => voice.name.toLowerCase().includes(keyword.toLowerCase()))) {
+          score += 200
+        }
+
+        // Puntos por calidad del proveedor
+        if (qualityKeywords.some((keyword) => voice.name.includes(keyword))) {
+          score += 50
+        }
+
+        // Puntos extra por combinación de calidad y género
+        const isFemale = femaleKeywords.some((keyword) => voice.name.toLowerCase().includes(keyword.toLowerCase()))
+        const isQuality = qualityKeywords.some((keyword) => voice.name.includes(keyword))
+        if (isFemale && isQuality) {
+          score += 100
+        }
+
+        // Puntos por ser local (mejor rendimiento)
+        if (voice.localService) {
+          score += 10
+        }
+
+        return score
+      }
+
+      // Ordenar voces por puntuación y seleccionar la mejor
+      const sortedVoices = spanishVoices.sort((a, b) => getVoiceScore(b) - getVoiceScore(a))
+
+      console.log(
+        "[v0] Top 3 voces:",
+        sortedVoices.slice(0, 3).map((v) => `${v.name} (score: ${getVoiceScore(v)})`),
+      )
+
+      this.selectedVoice = sortedVoices[0] || null
+
+      // Log para debug
+      if (this.selectedVoice) {
+        console.log("[v0] Voz seleccionada:", this.selectedVoice.name)
+      }
+    }
+
+    // Las voces pueden no estar disponibles inmediatamente
+    if (this.synth.getVoices().length > 0) {
+      setVoice()
+    } else {
+      this.synth.addEventListener("voiceschanged", setVoice)
+    }
+  }
+
+  speak(text: string, rate = 0.95, pitch = 1.15) {
     if (!this.synth) return
 
     this.synth.cancel()
 
     const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = rate
-    utterance.pitch = pitch
-    utterance.volume = 0.8
+
+    // Usar la voz seleccionada si está disponible
+    if (this.selectedVoice) {
+      utterance.voice = this.selectedVoice
+    }
+
+    utterance.rate = rate // Velocidad ligeramente más lenta para mayor naturalidad
+    utterance.pitch = pitch // Tono más alto para voz femenina
+    utterance.volume = 1.0 // Volumen máximo para claridad
     utterance.lang = "es-ES"
 
     this.synth.speak(utterance)
