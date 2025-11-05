@@ -1,102 +1,133 @@
-# Guía de Pruebas Automáticas - Katamaran
+Read pasted-text.txtThought for 1s# Guía de Pruebas Automáticas - Katamaran
 
 Este documento describe cómo ejecutar y entender las pruebas automáticas del juego Katamaran.
+
+---
 
 ## Instalación de Dependencias
 
 Antes de ejecutar las pruebas, asegúrate de tener todas las dependencias instaladas:
 
-\`\`\`bash
+```shellscript
 npm install
-\`\`\`
+```
+
+---
 
 ## Ejecutar Pruebas
 
 ### Ejecutar todas las pruebas una vez
 
-\`\`\`bash
+```shellscript
 npm test
-\`\`\`
+```
 
-### Ejecutar pruebas en modo watch (se re-ejecutan automáticamente al hacer cambios)
+### Ejecutar pruebas en modo watch
 
-\`\`\`bash
+Se re-ejecutan automáticamente al hacer cambios:
+
+```shellscript
 npm run test:watch
-\`\`\`
+```
 
 ### Ejecutar pruebas con reporte de cobertura
 
-\`\`\`bash
+```shellscript
 npm run test:coverage
-\`\`\`
+```
 
-Este comando generará un reporte de cobertura en la carpeta `coverage/` mostrando qué porcentaje del código está cubierto por las pruebas.
+> Este comando generará un reporte de cobertura en la carpeta `coverage/` mostrando qué porcentaje del código está cubierto por las pruebas.
+
+
+
+---
 
 ## Estructura de Pruebas
 
 Las pruebas están organizadas en la carpeta `__tests__/`:
 
-\`\`\`
+```plaintext
 __tests__/
 ├── audio-manager.test.ts    # Pruebas del gestor de audio
 ├── rhythm-game.test.tsx     # Pruebas del componente de juego
 └── home.test.tsx            # Pruebas de la página principal
-\`\`\`
+```
+
+---
 
 ## Tipos de Pruebas
 
 ### 1. Pruebas Unitarias (audio-manager.test.ts)
 
 Prueban la funcionalidad individual del gestor de audio:
+
 - Inicialización del AudioContext
 - Reproducción de sonidos direccionales
 - Síntesis de voz
 - Limpieza de recursos
 
+
 ### 2. Pruebas de Componentes (rhythm-game.test.tsx, home.test.tsx)
 
 Prueban el comportamiento de los componentes React:
+
 - Renderizado correcto de elementos
 - Interacción con el usuario (clicks, teclas)
 - Cambios de estado
 - Navegación entre pantallas
 
+
 ### 3. Pruebas de Accesibilidad
 
 Verifican que el juego sea accesible:
+
 - Textos alternativos en imágenes
 - Instrucciones del asistente
 - Navegación por teclado
 
-## Configuración
+
+---
+
+## ️ Configuración
 
 ### jest.config.js
 
 Configuración principal de Jest que define:
+
 - Entorno de pruebas (jsdom para simular el navegador)
 - Mapeo de módulos (@/ apunta a la raíz del proyecto)
 - Archivos a incluir en el reporte de cobertura
 
+
 ### jest.setup.js
 
 Configuración inicial que se ejecuta antes de cada prueba:
+
 - Mocks de Web Audio API
 - Mocks de Speech Synthesis API
 - Configuración de testing-library/jest-dom
+
+
+---
 
 ## Mocks
 
 Las pruebas utilizan mocks para simular APIs del navegador que no están disponibles en el entorno de testing:
 
-- **AudioContext**: Simula la API de audio del navegador
-- **SpeechSynthesis**: Simula la síntesis de voz
-- **matchMedia**: Simula consultas de medios CSS
+| Mock | Descripción
+|-----|-----
+| **AudioContext** | Simula la API de audio del navegador
+| **SpeechSynthesis** | Simula la síntesis de voz
+| **matchMedia** | Simula consultas de medios CSS
+
+
+---
 
 ## Interpretación de Resultados
 
 Después de ejecutar las pruebas, verás un resumen como este:
 
-\`\`\`
+```plaintext
 PASS  __tests__/audio-manager.test.ts
 PASS  __tests__/rhythm-game.test.tsx
 PASS  __tests__/home.test.tsx
@@ -105,23 +136,33 @@ Test Suites: 3 passed, 3 total
 Tests:       15 passed, 15 total
 Snapshots:   0 total
 Time:        2.5s
-\`\`\`
+```
 
-- **PASS**: Todas las pruebas en ese archivo pasaron
-- **FAIL**: Al menos una prueba falló
-- **Test Suites**: Número de archivos de prueba
-- **Tests**: Número total de pruebas individuales
+| Concepto | Descripción
+|-----|-----
+| **PASS** | Todas las pruebas en ese archivo pasaron
+| **FAIL** | Al menos una prueba falló
+| **Test Suites** | Número de archivos de prueba
+| **Tests** | Número total de pruebas individuales
+
+
+---
 
 ## Cobertura de Código
 
 El reporte de cobertura muestra:
 
-- **Statements**: Porcentaje de líneas de código ejecutadas
-- **Branches**: Porcentaje de ramas condicionales probadas
-- **Functions**: Porcentaje de funciones llamadas
-- **Lines**: Porcentaje de líneas ejecutadas
+- **Statements** - Porcentaje de líneas de código ejecutadas
+- **Branches** - Porcentaje de ramas condicionales probadas
+- **Functions** - Porcentaje de funciones llamadas
+- **Lines** - Porcentaje de líneas ejecutadas
 
-Objetivo: Mantener al menos 80% de cobertura en todos los aspectos.
+
+> Objetivo: Mantener al menos 80% de cobertura en todos los aspectos.
+
+
+
+---
 
 ## Solución de Problemas
 
@@ -137,7 +178,9 @@ Verifica que `jest.setup.js` esté correctamente configurado y que `setupFilesAf
 
 Asegúrate de que el entorno de CI tenga Node.js versión 18 o superior instalado.
 
-## Agregar Nuevas Pruebas
+---
+
+## ️ Agregar Nuevas Pruebas
 
 Para agregar nuevas pruebas:
 
@@ -146,9 +189,10 @@ Para agregar nuevas pruebas:
 3. Escribe tus pruebas usando `describe()` e `it()`
 4. Ejecuta `npm test` para verificar que pasen
 
-Ejemplo:
 
-\`\`\`typescript
+### Ejemplo:
+
+```typescript
 import { render, screen } from '@testing-library/react'
 import MiComponente from '@/components/mi-componente'
 
@@ -158,7 +202,9 @@ describe('MiComponente', () => {
     expect(screen.getByText('Hola Mundo')).toBeInTheDocument()
   })
 })
-\`\`\`
+```
+
+---
 
 ## Recursos Adicionales
 
