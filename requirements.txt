@@ -1,0 +1,14 @@
+# Node.js and Next.js project requirements
+# Versiones mínimas recomendadas para ejecutar Katamaran Game
+
+node>=18.0.0
+npm>=9.0.0
+
+# Dependencias del proyecto
+next>=14.0.0
+react>=18.0.0
+react-dom>=18.0.0
+
+# Recomendado para compatibilidad
+# (soluciona conflictos de dependencias)
+legacy-peer-deps=true
